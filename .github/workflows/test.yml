@@ -1,0 +1,38 @@
+name: Formula tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_NO_ENV_HINTS: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: Homebrew/actions/setup-homebrew@d482da0e602890d3160aade42e72c8556103bf04 # main
+      - name: Register the checked-out tap
+        run: brew tap --custom-remote drblessing/cloudflare-cli "$GITHUB_WORKSPACE"
+      - name: Check formula style
+        run: brew style drblessing/cloudflare-cli/cloudflare-cli
+      - name: Install the formula
+        run: brew install --build-from-source drblessing/cloudflare-cli/cloudflare-cli
+      - name: Test installed commands and Workers runtime
+        run: brew test drblessing/cloudflare-cli/cloudflare-cli
+      - name: Audit the formula
+        run: brew audit --strict drblessing/cloudflare-cli/cloudflare-cli
